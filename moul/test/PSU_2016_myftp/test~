@@ -1,0 +1,54 @@
+#!/bin/bash
+
+test() {
+    echo -n $2
+    echo -ne $3 | nc ftp.epitech.eu 21 | cut -d " " -f1 | cat -e > ref
+    echo -ne $3 | nc 127.0.0.1 $1 | cut -d " " -f1 | cat -e > student
+    diff student ref > /dev/null
+    if [[ $? -ne 0 ]]; then
+        echo -e " [KO]"
+        echo "reference test:"
+        cat ref
+        echo "your server test:"
+        cat student
+    else
+        echo -e " [OK]"
+    fi
+    rm ref student
+}
+
+cd ~/avo/moul/tmp/PSU_2016_myftp
+
+make > /dev/null
+
+if [[ $? -ne 0 ]]; then
+    echo "Can't compile your project"
+    exit 2
+fi
+
+PATH=/tmp
+PORT=4200
+
+echo "Start your server with "$PORT" "$PATH" "
+
+./server $PORT $PATH > /dev/null &
+
+if [[ $? -ne 0 ]]; then
+    echo "Can't start your server"
+    exit 3
+fi
+
+echo "Start Test: "
+
+## For make your test : test $1 "Name test" "Command"                           
+test $PORT "Simple Auth with Anonymous 1" "USER Anonymous\r\nPASS\r\nQUIT\r\n"
+test $PORT "Simple Auth with Anonymous 2" "USER Anonymous\r\nPASS \r\nQUIT\r\n"
+test $PORT "Wrong Auth" "USER dnfweinrie\r\n PASS refwerfwe\r\nQUIT\r\n"
+test $PORT "NOOP Command" "USER Anonymous\r\nPASS \r\nNOOP\r\nQUIT\r\n"
+test $PORT "Login Error command" "USER Anonymous\r\nTOTO\r\nPASS \r\nQUIT\r\n"
+echo "End of test"
+
+make fclean > /dev/null
+killall server
+cd - > /dev/null
+

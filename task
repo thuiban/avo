@@ -1,0 +1,51 @@
+#!/bin/bash
+
+get_project() {
+  cd moul/tmp > /dev/null
+  git clone git@git.epitech.eu:/huiban_t/$1 2>&1 > /dev/null
+  if [ "$?" -ne 0 ]; then
+    echo  "I can't get your project !"
+    exit 3;
+  fi
+ echo "Your project has been clone !"
+ cd - > /dev/null
+}
+
+sendresult() {
+ if [ -f moul/test/$1/email ]; then
+  echo "Result will be send at this mails:"
+  cat  moul/test/$1/email
+  cat $2 | mail -s "TASK FOR $1" `cat moul/test/$1/email | tr "\n" " "`
+ else
+  echo "Result :"
+  cat  $2
+ fi
+}
+
+clean_project() {
+  rm -rf moul/tmp/$1
+}
+
+if [ "$#" -ne 1 ]; then
+  echo "[On Slack] test $RepoProject"
+  echo "[CLISever] ./task $RepoProject"
+  exit 1;
+fi
+
+PROJ=$1
+
+if [ -d ./moul/test/$PROJ ]; then
+   echo "The will start soon !"
+else
+  echo "I have no test for this project !"
+  exit 2;
+fi
+sleep 1
+get_project $PROJ
+echo "Test will start now !"
+./moul/test/$PROJ/test > task.txt
+clean_project $PROJ
+sleep 1
+sendresult $PROJ "task.txt"
+rm task.txt
+echo 'Finish ! What is your next task ?'
